@@ -16,13 +16,13 @@ import (
 )
 
 type apiConfig struct {
-	DB *database.Queries;
+	DB *database.Queries
 }
 
-func main(){
-	fmt.Println("hello");
+func main() {
+	fmt.Println("hello")
 
-	godotenv.Load();
+	godotenv.Load()
 	portString := os.Getenv("PORT")
 
 	if portString == "" {
@@ -40,37 +40,37 @@ func main(){
 		log.Fatal("cpuld not cponnect to database")
 	}
 
-	
-	
-	apiCfg := apiConfig {
+	apiCfg := apiConfig{
 		DB: database.New(conn),
 	}
 
 	router := chi.NewRouter()
 
 	router.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{"https://*", "http://*"}, // Specify allowed origins
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, // Include OPTIONS for preflight
-		AllowedHeaders: []string{"*"}, // Specify allowed headers
-		ExposedHeaders: []string{"Link"},
+		AllowedOrigins:   []string{"https://*", "http://*"},                   // Specify allowed origins
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, // Include OPTIONS for preflight
+		AllowedHeaders:   []string{"*"},                                       // Specify allowed headers
+		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: false,
-		MaxAge: 300, // Maximum duration (in seconds) the results of a preflight request can be cached
+		MaxAge:           300, // Maximum duration (in seconds) the results of a preflight request can be cached
 	}))
 
-	v1Router := chi.NewRouter();
-	v1Router.Get("/healthz", handlerReadiness);
+	v1Router := chi.NewRouter()
+	v1Router.Get("/healthz", handlerReadiness)
 	v1Router.Get("/err", handlerErr)
 	v1Router.Post("/users", apiCfg.handlerCreateUser)
-	router.Mount("/v1", v1Router);
+	v1Router.Get("/users", apiCfg.middlewareAuth(apiCfg.handlerGetUser))
+	v1Router.Post("/feeds", apiCfg.middlewareAuth(apiCfg.handlerCreateFeed))
+	router.Mount("/v1", v1Router)
 
 	srv := &http.Server{
 		Handler: router,
-		Addr: ":"+portString ,
+		Addr:    ":" + portString,
 	}
 
-	log.Printf("Server Starting on port %v", portString);
+	log.Printf("Server Starting on port %v", portString)
 
-	err = srv.ListenAndServe();
+	err = srv.ListenAndServe()
 
 	if err != nil {
 		log.Fatal(err)
